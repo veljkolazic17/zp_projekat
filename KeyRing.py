@@ -7,8 +7,6 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import CAST
 from Crypto.Hash import SHA1
 
-from elgamal.elgamal import Elgamal
-
 class PrivateKeyRing:
 
     class PrivateKeyRingEntry:
@@ -79,4 +77,23 @@ class PrivateKeyRing:
         return res
 
 class PublicKeyRing:
+
+    class PublicKeyRingEntry:
+        timestamp : datetime
+        keyID : bytes
+        publicKey : bytes
+        userID : str
+        algoTypeAsym : AlgoTypeAsym
+
+    def __init__(self) -> None:
+        self.keyMap = {} 
+
+    def __str__(self) -> str:
+        res : str = ""
+        for key in self.keyMap.keys():
+            for entry in self.keyMap[key]:
+                res += entry.userID + " " + str(entry.keyID)
+            res += '\n'
+        return res
+
     pass
