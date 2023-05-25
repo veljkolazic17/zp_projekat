@@ -3,6 +3,13 @@ from Crypto.Hash import SHA1
 from Crypto.Signature import DSS
 from Crypto.Signature import pss
 from Crypto.Cipher import CAST
+from Crypto.Cipher import AES
+
+from Crypto.Cipher import PKCS1_v1_5
+
+from Crypto.Random import get_random_bytes
+
+
 import gzip
 
 class PGPOptions:
@@ -27,11 +34,12 @@ class PGP:
         self.privateKeyRing = PrivateKeyRing()
 
     
-    def sendMessage(self, message : bytes, filePath : str, pgpoptions : PGPOptions, privateKeyEntry : PrivateKeyRing.PrivateKeyRingEntry = None, password : str = None, publicKeyEntry : PublicKeyRing.PublicKeyRingEntry = None) -> bytes:
+    def sendMessage(self, message : bytes, filePath : str, pgpoptions : PGPOptions, algotTypeSym : AlgoTypeSym = None, privateKeyEntry : PrivateKeyRing.PrivateKeyRingEntry = None, password : str = None, publicKeyEntry : PublicKeyRing.PublicKeyRingEntry = None) -> bytes:
         
         messageToSend : bytes = message
 
-        if pgpoptions.signature:
+        # Sign the message
+        if pgpoptions.signature and privateKeyEntry:
 
             # Hash password
             h = SHA1.new()
@@ -54,7 +62,6 @@ class PGP:
                 # Signing
                 signer = DSS.new(dsaPrivateKey, 'fips-186-3')
                 signature = signer.sign(h)
-                messageToSend = signature + message
                 
             elif privateKeyEntry.algoTypeAsym == AlgoTypeAsym.RSA:
                 rsaPrivateKey = RSA.importKey(extern_key=privateKey)
@@ -62,14 +69,34 @@ class PGP:
                 # Signing
                 signer = pss.new(rsaPrivateKey)
                 signature = signer.sign(h)
-                messageToSend = signature + message
+            
+            messageToSend = privateKeyEntry.keyID + signature + message
 
+        # Zip the message
         if pgpoptions.zip:
             messageToSend = gzip.compress(data=messageToSend,compresslevel=9)
 
-
+        # Encrypt the message
         if pgpoptions.encryption:
-            pass
+
+            sessionKey : bytes = get_random_bytes(16)
+            publicKey : bytes = publicKeyEntry.publicKey
+
+            if algotTypeSym == AlgoTypeSym.CAST5:
+                messageToSend = CAST.new(sessionKey, CAST.MODE_OPENPGP).encrypt(messageToSend)
+            elif algotTypeSym == AlgoTypeSym.AES128:
+                messageToSend = AES.new(sessionKey, AES.MODE_OPENPGP, iv=b'0123456789abcdef').encrypt(messageToSend)
+
+            if publicKeyEntry.algoTypeAsym == AlgoTypeAsym.ELGAMAL:
+                pass
+            elif publicKeyEntry.algoTypeAsym == AlgoTypeAsym.RSA:
+
+                rsaPublicKey = RSA.importKey(extern_key=publicKey)
+                sessionKey = PKCS1_v1_5.new(rsaPublicKey).encrypt(sessionKey)
+
+            messageToSend = publicKeyEntry.keyID + sessionKey + messageToSend
+
+
         if pgpoptions.radix64:
             pass
 
