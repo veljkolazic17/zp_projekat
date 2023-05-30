@@ -125,5 +125,12 @@ class PublicKeyRing:
             publicKey=publicKey,
             keySizeAsym=keySizeAsym
         ))
+    
+    def findEntryByKeyID(self, keyID : bytes) -> PublicKeyRingEntry:
+        for _, value in self.keyMap.items():
+            for entry in value:
+                if entry.keyID == keyID:
+                    return entry
+        return None
 
     

@@ -21,7 +21,7 @@ def main():
     pgp = PGP()
     privateKeyEnyty = pgp.privateKeyRing.generateKeyPair(algoTypeAsym = AlgoTypeAsym.RSA, keySizeAsym = KeySizeAsym.KEY1024, userData = userData)
     pgp.publicKeyRing.importSingleKey(userID=privateKeyEnyty.userID, publicKey=privateKeyEnyty.publicKey, algoTypeAsym=AlgoTypeAsym.RSA, keySizeAsym=privateKeyEnyty.keySizeAsym)
-    pgp.sendMessage(message=b'kurvicamalaslatka', filePath='kurac.txt', pgpoptions=PGPOptions(encryption=True),password='malikurac123', privateKeyEntry=pgp.privateKeyRing.keyMap['veljkolazic2000@gmail.com'][0], publicKeyEntry=pgp.publicKeyRing.keyMap['veljkolazic2000@gmail.com'][0], algotTypeSym=AlgoTypeSym.CAST5)
+    pgp.sendMessage(message=b'kurvicamalaslatka', filePath='kurac.txt', pgpoptions=PGPOptions(signature=True,zip=True,encryption=True,radix64=True),password='malikurac123', privateKeyEntry=pgp.privateKeyRing.keyMap['veljkolazic2000@gmail.com'][0], publicKeyEntry=pgp.publicKeyRing.keyMap['veljkolazic2000@gmail.com'][0], algotTypeSym=AlgoTypeSym.AES128)
     pgp.receiveMessage(filePath='kurac.txt', password='malikurac123')
 
 if __name__=="__main__":

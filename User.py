@@ -16,6 +16,7 @@ class AlgoTypeSym(Enum):
     AES128 = 2
 
 class KeySizeAsym(Enum):
+    NONE = 0
     KEY1024 = 1024
     KEY2048 = 2048
 

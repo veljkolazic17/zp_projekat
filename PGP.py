@@ -4,6 +4,7 @@ from Crypto.Signature import DSS
 from Crypto.Signature import pss
 from Crypto.Cipher import CAST
 from Crypto.Cipher import AES
+from Crypto.PublicKey import ECC
 import base64
 
 # from Crypto.Cipher import PKCS1_v1_5
@@ -59,7 +60,7 @@ class PGP:
                 f.write('1'.encode('utf-8'))
             elif privateKeyEntry.algoTypeAsym == AlgoTypeAsym.DSA:
                 f.write('2'.encode('utf-8'))
-            elif privateKeyEntry.algoTypeAsym == AlgoTypeAsym.ELGAMAL:
+            elif publicKeyEntry.algoTypeAsym == AlgoTypeAsym.ELGAMAL:
                 f.write('3'.encode('utf-8'))
         else:
             f.write('0'.encode('utf-8'))
@@ -157,7 +158,7 @@ class PGP:
         return messageToSend
     
 
-    def receiveMessage(self, filePath : str, password : str):
+    def receiveMessage(self, filePath : str, password : str) -> bytes:
         f = open(filePath, 'rb')
         messageToReceive = list(f.read())
         f.close() 
@@ -214,6 +215,54 @@ class PGP:
                 cipher = CAST.new(sessionKey, CAST.MODE_OPENPGP, eiv)
                 messageToReceive = cipher.decrypt(ciphertext)
             elif encryptionTypeSym == AlgoTypeSym.AES128:
-                messageToReceive = AES.new(sessionKey, AES.MODE_OPENPGP, iv=b'0123456789abcdef').decrypt(messageToReceive)
+                iv = messageToReceive[:AES.block_size+2]
+                ciphertext = messageToReceive[AES.block_size+2:]
+                messageToReceive = AES.new(sessionKey, AES.MODE_OPENPGP, iv=iv).decrypt(ciphertext)
+
+        # Unzip the message
+        if pgpoptions.zip:
+            messageToReceive = gzip.decompress(data=messageToReceive)
+
+        # Signature check
+        if pgpoptions.signature:
+            keyID : bytes = messageToReceive[0:8]
+            digest : bytes = None 
+        
+            publicKeySignature : PublicKeyRing.PublicKeyRingEntry = self.publicKeyRing.findEntryByKeyID(keyID=keyID).publicKey
+
+            if signatureTypeAsym == AlgoTypeAsym.DSA:
+                if keySizeSignature == KeySizeAsym.KEY1024:
+                    digest = messageToReceive[8:48]
+                    messageToReceive = messageToReceive[48:]
+                elif keySizeSignature == KeySizeAsym.KEY2048:
+                    digest = messageToReceive[8:64]
+                    messageToReceive = messageToReceive[64:]
+
+                key = DSA.import_key(extern_key=publicKeySignature)
+                h = SHA1.new(messageToReceive)
+                verifier = DSS.new(key, 'fips-186-3')
+                try:
+                    verifier.verify(h, digest)
+                    print("The message is authentic")
+                except ValueError:
+                    print("The message is not authentic")
+
+            elif signatureTypeAsym == AlgoTypeAsym.RSA:
+                if keySizeSignature == KeySizeAsym.KEY1024:
+                    digest = messageToReceive[8:136]
+                    messageToReceive = messageToReceive[136:]
+                elif keySizeSignature == KeySizeAsym.KEY2048:
+                    digest = messageToReceive[8:264]
+                    messageToReceive = messageToReceive[264:]
+                key = RSA.import_key(extern_key=publicKeySignature)
+                h = SHA1.new(messageToReceive)
+                verifier = pss.new(key)
+                try:
+                    verifier.verify(h, digest)
+                    print("The message is authentic")
+                except (ValueError, TypeError):
+                    print("The message is not authentic")
+
+
 
         print(messageToReceive)
