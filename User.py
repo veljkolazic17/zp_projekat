@@ -5,11 +5,13 @@ from enum import Enum
 #     DSAELGAMAL = 2
 
 class AlgoTypeAsym(Enum):
+    NONE = 0
     RSA = 1
     DSA = 2
     ELGAMAL = 3
 
 class AlgoTypeSym(Enum):
+    NONE = 0
     CAST5 = 1
     AES128 = 2
 
