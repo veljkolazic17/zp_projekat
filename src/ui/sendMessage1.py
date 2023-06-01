@@ -127,6 +127,8 @@ class Ui_Form(object):
             globals.currentWindow.hide()
             globals.currentWindow = self.window
             self.window.show()
+        else:
+            pass
 
 from home import Ui_Form as homeUI
 from algorithmChoice import Ui_AlgorithmForm as algoChoiceUI

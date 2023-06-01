@@ -10,6 +10,15 @@ class AlgoTypeAsym(Enum):
     DSA = 2
     ELGAMAL = 3
 
+    def __str__(self) -> str:
+        if self.value == 1:
+            return "RSA"
+        if self.value == 2:
+            return "DSA"
+        if self.value == 3:
+            return "ELGAMAL"
+        return "NONE"
+
 class AlgoTypeSym(Enum):
     NONE = 0
     CAST5 = 1

@@ -9,8 +9,9 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-
-
+import globals
+from PyQt5.QtWidgets import QTableWidgetItem
+from PyQt5.QtWidgets import QAbstractItemView
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
@@ -35,15 +36,27 @@ class Ui_Form(object):
         self.label_2.setAlignment(QtCore.Qt.AlignCenter)
         self.label_2.setObjectName("label_2")
         self.privateKeys = QtWidgets.QTableWidget(Form)
+        self.privateKeys.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+        
+        self.privateKeys.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.privateKeys.setSelectionBehavior(QAbstractItemView.SelectRows)
+        if not globals.pgpOptions.signature:
+            self.privateKeys.setEnabled(False)
         self.privateKeys.setGeometry(QtCore.QRect(40, 110, 300, 411))
         self.privateKeys.setObjectName("privateKeys")
-        self.privateKeys.setColumnCount(0)
-        self.privateKeys.setRowCount(0)
+        self.privateKeys.setColumnCount(5)
+        self.privateKeys.setRowCount(globals.pgp.privateKeyRing.size)
         self.publicKeys = QtWidgets.QTableWidget(Form)
+        self.publicKeys.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+        self.publicKeys.resizeColumnsToContents()
+        self.publicKeys.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.publicKeys.setSelectionBehavior(QAbstractItemView.SelectRows)
+        if not globals.pgpOptions.encryption:
+            self.publicKeys.setEnabled(False)
         self.publicKeys.setGeometry(QtCore.QRect(450, 110, 300, 411))
         self.publicKeys.setObjectName("publicKeys")
-        self.publicKeys.setColumnCount(0)
-        self.publicKeys.setRowCount(0)
+        self.publicKeys.setColumnCount(5)
+        self.publicKeys.setRowCount(globals.pgp.publicKeyRing.size)
         self.pushButton = QtWidgets.QPushButton(Form)
         self.pushButton.setGeometry(QtCore.QRect(20, 540, 120, 40))
         font = QtGui.QFont()
@@ -60,9 +73,16 @@ class Ui_Form(object):
         font.setWeight(75)
         self.pushButton_2.setFont(font)
         self.pushButton_2.setObjectName("pushButton_2")
-
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
+
+    def button_handler_sendMessageBack(self):
+        self.window = QtWidgets.QMainWindow()
+        self.ui = algoUI()
+        self.ui.setupUi(self.window)
+        globals.currentWindow.hide()
+        globals.currentWindow = self.window
+        self.window.show()
 
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
@@ -70,14 +90,35 @@ class Ui_Form(object):
         self.label.setText(_translate("Form", "Private Key Selection"))
         self.label_2.setText(_translate("Form", "Public Key Selection"))
         self.pushButton.setText(_translate("Form", "Back"))
+        self.pushButton.clicked.connect(self.button_handler_sendMessageBack)
         self.pushButton_2.setText(_translate("Form", "Next"))
+        list = globals.pgp.privateKeyRing.listify()
+        self.privateKeys.setHorizontalHeaderLabels([
+            "Timestamp",
+            "KeyID",
+            "User ID",
+            "Algo Type",
+            "Key Size"
+        ])
+        for i in range(globals.pgp.privateKeyRing.size):
+            secondList = [list[i].timestamp, list[i].keyID.hex(), list[i].userID, list[i].algoTypeAsym, list[i].keySizeAsym.value]
+            for j in range(5):
+                self.privateKeys.setItem(i,j, QTableWidgetItem(str(secondList[j])))
+        self.privateKeys.resizeColumnsToContents()
+        list = globals.pgp.publicKeyRing.listify()
+        self.publicKeys.setHorizontalHeaderLabels([
+            "Timestamp",
+            "KeyID",
+            "User ID",
+            "Algo Type",
+            "Key Size"
+        ])
+        for i in range(globals.pgp.publicKeyRing.size):
+            secondList = [list[i].timestamp, list[i].keyID.hex(), list[i].userID, list[i].algoTypeAsym, list[i].keySizeAsym.value]
+            for j in range(5):
+                self.publicKeys.setItem(i,j, QTableWidgetItem(str(secondList[j])))
+        self.publicKeys.resizeColumnsToContents()
+               
 
+from algorithmChoice import Ui_AlgorithmForm as algoUI
 
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    Form = QtWidgets.QWidget()
-    ui = Ui_Form()
-    ui.setupUi(Form)
-    Form.show()
-    sys.exit(app.exec_())

@@ -13,7 +13,8 @@ from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
 class KeyRing:
     def __init__(self) -> None:
-        self.keyMap = {} 
+        self.keyMap = {}
+        self.size = 0
     def findEntryByKeyID(self, keyID : bytes):
         for _, value in self.keyMap.items():
             for entry in value:
@@ -33,11 +34,13 @@ class KeyRing:
             for entry in value:
                 if entry.keyID == keyID:
                     value.remove(entry)
+                    self.size -= 1
                     return True
         return False
     def deleteEntryByUserID(self, userID : str):
         for key,_ in self.keyMap.items():
             if key == userID:
+                self.size -= 1
                 del self.keyMap[key]
                 return True
         return False
@@ -54,7 +57,14 @@ class KeyRing:
             f.write(rsaKey.export_key(format='PEM'))
 
         f.close()
-        
+    def listify(self):
+        list = []
+        for key,value in self.keyMap.items():
+            for item in value:
+                list.append(item)
+        return list
+
+
 
 class PrivateKeyRing(KeyRing):
 
@@ -97,7 +107,7 @@ class PrivateKeyRing(KeyRing):
         if userData.mail not in self.keyMap:
             self.keyMap[userData.mail] = []
         self.keyMap[userData.mail].append(privateKeyRingEntry)
-
+        self.size += 1
         return privateKeyRingEntry
 
     def generateKeyPair(self, algoTypeAsym : AlgoTypeAsym, keySizeAsym : KeySizeAsym, userData : UserData) -> PrivateKeyRingEntry:
@@ -196,6 +206,7 @@ class PrivateKeyRing(KeyRing):
                     keySizeAsym= keySizeAsym,
                     encrtyptedPrivateKey=encrtyptedPrivateKey
                 ))
+                self.size += 1
             else:
                 exceptionMsg ='Key already exists!'
                 raise(KeyError())
@@ -236,6 +247,7 @@ class PublicKeyRing(KeyRing):
             publicKey=publicKey,
             keySizeAsym=keySizeAsym
         ))
+        self.size += 1
     
     def importPublicKey(self, filepath: str, userID : str):
         f = open(file=filepath,mode='rb')
@@ -269,6 +281,7 @@ class PublicKeyRing(KeyRing):
                     publicKey=publicKey,
                     keySizeAsym= keySizeAsym
                 ))
+                self.size += 1
             else:
                 exceptionMsg ='Key already exists!'
                 raise(KeyError())

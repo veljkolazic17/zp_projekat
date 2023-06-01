@@ -138,7 +138,8 @@ class Ui_AlgorithmForm(object):
         self.pushButton.setText(_translate("AlgorithmForm", "Back"))
         self.pushButton.clicked.connect(self.button_handler_sendMessageBack)
         self.pushButton_2.setText(_translate("AlgorithmForm", "Next"))
-       
+        self.pushButton_2.clicked.connect(self.button_handler_sendMessageNext)
+    
     def button_handler_sendMessageBack(self):
         self.window = QtWidgets.QMainWindow()
         self.ui = sendMessageUI()
@@ -147,4 +148,13 @@ class Ui_AlgorithmForm(object):
         globals.currentWindow = self.window
         self.window.show()
 
+    def button_handler_sendMessageNext(self):
+        self.window = QtWidgets.QMainWindow()
+        self.ui = keySelectionUI()
+        self.ui.setupUi(self.window)
+        globals.currentWindow.hide()
+        globals.currentWindow = self.window
+        self.window.show()
+
 from sendMessage1 import Ui_Form as sendMessageUI
+from keySelection import Ui_Form as keySelectionUI
