@@ -252,7 +252,7 @@ class PublicKeyRing(KeyRing):
     def importPublicKey(self, filepath: str, userID : str):
         f = open(file=filepath,mode='rb')
         data = f.read()
-        exceptionMsg = 'Key is not public!'
+        exceptionMsg = 'KEY IS NOT PUBLIC!'
         try:
             key = load_pem_public_key(data)
             publicKey = None
@@ -272,24 +272,27 @@ class PublicKeyRing(KeyRing):
             else:
                 print('ELGAMAL')
 
+            retValue = None
+
             if userID not in self.keyMap:
                 self.keyMap[userID] = []
             if self.findEntryByKeyID(publicKey[0:8]) == None:
-                self.keyMap[userID].append(self.PublicKeyRingEntry(
+                retValue = self.PublicKeyRingEntry(
                     userID=userID,
                     algoTypeAsym=algoTypeAsym,
                     publicKey=publicKey,
                     keySizeAsym= keySizeAsym
-                ))
+                )
+                self.keyMap[userID].append(retValue)
                 self.size += 1
             else:
-                exceptionMsg ='Key already exists!'
+                exceptionMsg ='KEY ALREADY EXISTS!'
                 raise(KeyError())
         except:
             raise(KeyError(exceptionMsg))
             
         f.close()
-        
+        return retValue
     
 
     

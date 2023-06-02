@@ -105,7 +105,6 @@ class Ui_Form(object):
         self.privateKeys.cellClicked.connect(self.get_clicked_row_private)
         self.publicKeys.cellClicked.connect(self.get_clicked_row_public)
 
-        
         self.privateKeys.setHorizontalHeaderLabels([
             "Timestamp",
             "KeyID",
@@ -141,6 +140,7 @@ class Ui_Form(object):
                 self.publicKeys.hideRow(i)
 
         self.publicKeys.resizeColumnsToContents()
+        
         if globals.previousRowPrivate != None:
             for j in range(self.privateKeys.columnCount()):
                 self.privateKeys.item(globals.previousRowPrivate, j).setBackground(QColor(0, 200, 0))

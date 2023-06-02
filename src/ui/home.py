@@ -11,16 +11,14 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import globals
 
+import sys
+sys.path.insert(1, 'src/pgp')
+import PGP
+sys.path.append('..')
+
 class Ui_Form(object):
 
-    def button_handler_sendMessage(self):
-        
-        self.window = QtWidgets.QMainWindow()
-        self.ui = sendMessage1UI()
-        self.ui.setupUi(self.window)
-        globals.currentWindow.hide()
-        globals.currentWindow = self.window
-        self.window.show()
+    
 
 
     def setupUi(self, Form):
@@ -97,16 +95,46 @@ class Ui_Form(object):
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
+
+        globals.algoAsymEncryption = None
+        globals.algoAsymSignature = None
+        globals.algoSym = None
+        globals.message = ""
+        globals.filePath = ""
+        globals.privateKeyEntry = None
+        globals.publicKeyEntry = None
+        globals.previousRowPrivate = None
+        globals.previousRowPublic = None
+        globals.pgpOptions = PGP.PGPOptions()
+
+
         _translate = QtCore.QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "Form"))
         self.label.setText(_translate("Form", "PGP"))
         self.pushButton.setText(_translate("Form", "Public Key Ring"))
+        self.pushButton.clicked.connect(self.button_handler_public_key_ring)
         self.pushButton_2.setText(_translate("Form", "Private Key Ring"))
         self.pushButton_3.setText(_translate("Form", "Send Message"))
         self.pushButton_3.clicked.connect(self.button_handler_sendMessage)
 
         self.pushButton_4.setText(_translate("Form", "Receive Message"))
 
+    def button_handler_sendMessage(self):
+        self.window = QtWidgets.QMainWindow()
+        self.ui = sendMessage1UI()
+        self.ui.setupUi(self.window)
+        globals.currentWindow.hide()
+        globals.currentWindow = self.window
+        self.window.show()
+
+    def button_handler_public_key_ring(self):
+        self.window = QtWidgets.QMainWindow()
+        self.ui = publicKeyRingUI()
+        self.ui.setupUi(self.window)
+        globals.currentWindow.hide()
+        globals.currentWindow = self.window
+        self.window.show()
 
 
 from sendMessage1 import Ui_Form as sendMessage1UI
+from publicKeyRing import Ui_publicKeyRing as publicKeyRingUI
