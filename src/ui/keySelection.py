@@ -115,8 +115,14 @@ class Ui_Form(object):
         ])
         for i in range(globals.pgp.privateKeyRing.size):
             secondList = [self.list_private[i].timestamp, self.list_private[i].keyID.hex(), self.list_private[i].userID, self.list_private[i].algoTypeAsym, self.list_private[i].keySizeAsym.value]
+                        
             for j in range(5):
                 self.privateKeys.setItem(i,j, QTableWidgetItem(str(secondList[j])))
+
+
+            if globals.algoAsymSignature and secondList[3].value != globals.algoAsymSignature.value:
+                self.privateKeys.hideRow(i)
+
         self.privateKeys.resizeColumnsToContents()
         
         self.publicKeys.setHorizontalHeaderLabels([
@@ -130,6 +136,10 @@ class Ui_Form(object):
             secondList = [self.list_public[i].timestamp, self.list_public[i].keyID.hex(), self.list_public[i].userID, self.list_public[i].algoTypeAsym, self.list_public[i].keySizeAsym.value]
             for j in range(5):
                 self.publicKeys.setItem(i,j, QTableWidgetItem(str(secondList[j])))
+
+            if globals.algoAsymEncryption and secondList[3].value != globals.algoAsymEncryption.value:
+                self.publicKeys.hideRow(i)
+
         self.publicKeys.resizeColumnsToContents()
         if globals.previousRowPrivate != None:
             for j in range(self.privateKeys.columnCount()):
@@ -137,7 +147,7 @@ class Ui_Form(object):
         if globals.previousRowPublic != None:
             for j in range(self.publicKeys.columnCount()):
                 self.publicKeys.item(globals.previousRowPublic, j).setBackground(QColor(0, 200, 0))
-                
+
     def button_handler_next(self):
         if (globals.privateKeyEntry == None and globals.pgpOptions.signature == True) or (globals.publicKeyEntry == None and globals.pgpOptions.encryption == True):
             
