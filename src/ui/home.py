@@ -9,6 +9,7 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QMessageBox
 import globals
 
 import sys
@@ -63,6 +64,7 @@ class Ui_Form(object):
         font.setPointSize(20)
         self.pushButton_2.setFont(font)
         self.pushButton_2.setObjectName("pushButton_2")
+        self.pushButton_2.clicked.connect(self.button_handler_private_key_ring)
         self.verticalLayout.addWidget(self.pushButton_2)
         spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem1)
@@ -89,6 +91,7 @@ class Ui_Form(object):
         font.setPointSize(20)
         self.pushButton_4.setFont(font)
         self.pushButton_4.setObjectName("pushButton_4")
+        self.pushButton_4.clicked.connect(self.button_handler_recieveMessage)
         self.verticalLayout.addWidget(self.pushButton_4)
 
         self.retranslateUi(Form)
@@ -101,6 +104,7 @@ class Ui_Form(object):
         globals.algoSym = None
         globals.message = ""
         globals.filePath = ""
+        globals.email = ""
         globals.privateKeyEntry = None
         globals.publicKeyEntry = None
         globals.previousRowPrivate = None
@@ -135,6 +139,49 @@ class Ui_Form(object):
         globals.currentWindow = self.window
         self.window.show()
 
+    def button_handler_private_key_ring(self):
+        self.window = QtWidgets.QMainWindow()
+        self.ui = privateKeyRingUI()
+        self.ui.setupUi(self.window)
+        globals.currentWindow.hide()
+        globals.currentWindow = self.window
+        self.window.show()
+
+    def button_handler_recieveMessage(self):
+        self.window = QtWidgets.QMainWindow()
+        filePath, enteredFileName = QtWidgets.QInputDialog.getText(globals.currentWindow, 'File Path', 'Enter file path:')
+        if enteredFileName:
+            pgpOptions = globals.pgp.checkPGPOptions(filePath)
+            password = None
+            if pgpOptions.encryption:
+                password, enteredPassword = QtWidgets.QInputDialog.getText(globals.currentWindow, 'Password', 'Enter password:')
+                if not enteredPassword:
+                    msg = QMessageBox(globals.currentWindow)
+                    msg.setWindowTitle("PASSWORD ERROR!")
+                    msg.setText("PASSWORD REQUIRED!")
+                    msg.exec()
+                    return
+            try:
+                recievedMessage,email = globals.pgp.receiveMessage(filePath=filePath, password=password)
+                recievedMessage = recievedMessage.decode('utf-8')
+                globals.message = recievedMessage
+                globals.pgpOptions = pgpOptions
+                globals.email = email 
+                self.ui = messageRecieveUI()
+                self.ui.setupUi(self.window)
+                globals.currentWindow.hide()
+                globals.currentWindow = self.window
+                self.window.show()
+            except Exception as e:
+                msg = QMessageBox(globals.currentWindow)
+                msg.setWindowTitle("ERROR!")
+                msg.setText(str(e))
+                msg.exec()
+                return
+
+
 
 from sendMessage1 import Ui_Form as sendMessage1UI
 from publicKeyRing import Ui_publicKeyRing as publicKeyRingUI
+from privateKeyRing import Ui_privateKeyRing as privateKeyRingUI
+from messageRecieve import Ui_Form as messageRecieveUI

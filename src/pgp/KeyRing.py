@@ -1,6 +1,7 @@
 import datetime
 
 from User import *
+import os
 
 from Crypto.PublicKey import DSA
 from Crypto.PublicKey import RSA
@@ -138,28 +139,34 @@ class PrivateKeyRing(KeyRing):
         h.update(bytes(password, 'utf-8'))
         hashed_password = h.digest()
         hashed_password = hashed_password[0:16]
-
+        try:
         # Decrypted key
-        eiv = keyEntry.encrtyptedPrivateKey[:CAST.block_size+2]
-        ciphertext = keyEntry.encrtyptedPrivateKey[CAST.block_size+2:]
-        cipher = CAST.new(hashed_password, CAST.MODE_OPENPGP, eiv)
-        privateKey = cipher.decrypt(ciphertext)
-        if keyEntry.algoTypeAsym == AlgoTypeAsym.DSA:
-            dsaKey = DSA.import_key(extern_key=privateKey)
-            f.write(dsaKey.export_key(format='PEM'))
-        elif keyEntry.algoTypeAsym == AlgoTypeAsym.ELGAMAL:
-            pass
-        elif keyEntry.algoTypeAsym == AlgoTypeAsym.RSA:
-            rsaKey = RSA.import_key(extern_key=privateKey)
-            f.write(rsaKey.export_key(format='PEM'))
-
+            eiv = keyEntry.encrtyptedPrivateKey[:CAST.block_size+2]
+            ciphertext = keyEntry.encrtyptedPrivateKey[CAST.block_size+2:]
+            cipher = CAST.new(hashed_password, CAST.MODE_OPENPGP, eiv)
+            privateKey = cipher.decrypt(ciphertext)
+            
+            if keyEntry.algoTypeAsym == AlgoTypeAsym.DSA:
+                dsaKey = DSA.import_key(extern_key=privateKey)
+                f.write(dsaKey.export_key(format='PEM'))
+            elif keyEntry.algoTypeAsym == AlgoTypeAsym.ELGAMAL:
+                pass
+            elif keyEntry.algoTypeAsym == AlgoTypeAsym.RSA:
+                rsaKey = RSA.import_key(extern_key=privateKey)
+                f.write(rsaKey.export_key(format='PEM'))
+            
+        except:
+            f.close()
+            os.remove(filePath)
+            raise(KeyError("WRONG PASSWORD!"))
         f.close()
     
-    def importPrivateKey(self, filepathPublicKey: str, filepathPrivateKey: str, userID : str, password : str):
+    def importPrivateKey(self, filepathPublicKey: str, filepathPrivateKey: str, userID : str, password : str) -> PrivateKeyRingEntry:
         fpublic = open(file=filepathPublicKey,mode='rb')
         fprivate = open(file=filepathPrivateKey,mode='rb')
         publicData = fpublic.read()
         privateData = fprivate.read()
+        retValue = None
         exceptionMsg = 'Keys are not of expected format!'
         try:
             keyPrivate = load_pem_private_key(privateData,password=None)
@@ -199,13 +206,14 @@ class PrivateKeyRing(KeyRing):
             if userID not in self.keyMap:
                 self.keyMap[userID] = []
             if self.findEntryByKeyID(publicKey[0:8]) == None:
-                self.keyMap[userID].append(self.PrivateKeyRingEntry(
+                retValue = self.PrivateKeyRingEntry(
                     userID=userID,
                     algoTypeAsym=algoTypeAsym,
                     publicKey=publicKey,
                     keySizeAsym= keySizeAsym,
                     encrtyptedPrivateKey=encrtyptedPrivateKey
-                ))
+                )
+                self.keyMap[userID].append(retValue)
                 self.size += 1
             else:
                 exceptionMsg ='Key already exists!'
@@ -215,7 +223,7 @@ class PrivateKeyRing(KeyRing):
             
         fpublic.close()
         fprivate.close()
-
+        return retValue
 
 
 class PublicKeyRing(KeyRing):

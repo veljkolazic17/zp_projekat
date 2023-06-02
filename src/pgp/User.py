@@ -30,7 +30,6 @@ class KeySizeAsym(Enum):
     KEY2048 = 2048
 
 class UserData:
-    name : str
     mail : str
     password : str
 

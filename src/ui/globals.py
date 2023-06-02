@@ -25,3 +25,5 @@ def init():
     previousRowPublic = None
     global previousRowPrivate
     previousRowPrivate = None
+    global email
+    email = None

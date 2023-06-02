@@ -36,7 +36,17 @@ class PGP:
         self.publicKeyRing = PublicKeyRing()
         self.privateKeyRing = PrivateKeyRing()
 
-    
+    def checkPGPOptions(self, filePath : str) -> PGPOptions:
+        f = open(filePath, 'rb')
+        pgpOptionsBytes = list(f.read(4))
+        pgpOptions : PGPOptions = PGPOptions()
+        pgpOptions.signature = True if int(pgpOptionsBytes[0]) - 48 == 1 else False
+        pgpOptions.zip = True if int(pgpOptionsBytes[1]) - 48 == 1 else False
+        pgpOptions.encryption = True if int(pgpOptionsBytes[2]) - 48 == 1 else False
+        pgpOptions.radix64 = True if int(pgpOptionsBytes[3]) - 48 == 1 else False
+        return pgpOptions
+        
+        pgpOptions
     def sendMessage(self, message : bytes, filePath : str, pgpoptions : PGPOptions, algotTypeSym : AlgoTypeSym = None, privateKeyEntry : PrivateKeyRing.PrivateKeyRingEntry = None, password : str = None, publicKeyEntry : PublicKeyRing.PublicKeyRingEntry = None) -> bytes:
 
         f = open(filePath, 'wb')
@@ -158,8 +168,10 @@ class PGP:
         return messageToSend
     
 
-    def receiveMessage(self, filePath : str, password : str) -> bytes:
+    def receiveMessage(self, filePath : str, password : str):
         f = open(filePath, 'rb')
+
+        email = ""
         messageToReceive = list(f.read())
         f.close() 
         pgpoptions : PGPOptions = PGPOptions()
@@ -189,8 +201,8 @@ class PGP:
 
             if privateKeyEntry == None:
                 # Mozda neka poruka
-                print("private key not found")
-                return
+                raise ValueError("PRIVATE KEY NOT FOUND!")
+                
 
             h = SHA1.new()
             h.update(bytes(password, 'utf-8'))
@@ -202,22 +214,24 @@ class PGP:
             ciphertext = privateKeyEntry.encrtyptedPrivateKey[CAST.block_size+2:]
             cipher = CAST.new(hashed_password, CAST.MODE_OPENPGP, eiv)
             privateKey = cipher.decrypt(ciphertext)
+            try:
+                if encryptionTypeAsym == AlgoTypeAsym.ELGAMAL:
+                    pass
+                elif encryptionTypeAsym == AlgoTypeAsym.RSA:
+                    rsaPrivateKey = RSA.import_key(extern_key=privateKey)
+                    sessionKey = PKCS1_OAEP.new(rsaPrivateKey).decrypt(sessionKey)
 
-            if encryptionTypeAsym == AlgoTypeAsym.ELGAMAL:
-                pass
-            elif encryptionTypeAsym == AlgoTypeAsym.RSA:
-                rsaPrivateKey = RSA.import_key(extern_key=privateKey)
-                sessionKey = PKCS1_OAEP.new(rsaPrivateKey).decrypt(sessionKey)
-
-            if encryptionTypeSym == AlgoTypeSym.CAST5:
-                eiv = messageToReceive[:CAST.block_size+2]
-                ciphertext = messageToReceive[CAST.block_size+2:]
-                cipher = CAST.new(sessionKey, CAST.MODE_OPENPGP, eiv)
-                messageToReceive = cipher.decrypt(ciphertext)
-            elif encryptionTypeSym == AlgoTypeSym.AES128:
-                iv = messageToReceive[:AES.block_size+2]
-                ciphertext = messageToReceive[AES.block_size+2:]
-                messageToReceive = AES.new(sessionKey, AES.MODE_OPENPGP, iv=iv).decrypt(ciphertext)
+                if encryptionTypeSym == AlgoTypeSym.CAST5:
+                    eiv = messageToReceive[:CAST.block_size+2]
+                    ciphertext = messageToReceive[CAST.block_size+2:]
+                    cipher = CAST.new(sessionKey, CAST.MODE_OPENPGP, eiv)
+                    messageToReceive = cipher.decrypt(ciphertext)
+                elif encryptionTypeSym == AlgoTypeSym.AES128:
+                    iv = messageToReceive[:AES.block_size+2]
+                    ciphertext = messageToReceive[AES.block_size+2:]
+                    messageToReceive = AES.new(sessionKey, AES.MODE_OPENPGP, iv=iv).decrypt(ciphertext)
+            except:
+                raise ValueError("WRONG PASSWORD!")
 
         # Unzip the message
         if pgpoptions.zip:
@@ -227,8 +241,11 @@ class PGP:
         if pgpoptions.signature:
             keyID : bytes = messageToReceive[0:8]
             digest : bytes = None 
-        
-            publicKeySignature : PublicKeyRing.PublicKeyRingEntry = self.publicKeyRing.findEntryByKeyID(keyID=keyID).publicKey
+            try:
+                publicKeySignature : PublicKeyRing.PublicKeyRingEntry = self.publicKeyRing.findEntryByKeyID(keyID=keyID).publicKey
+                email = self.publicKeyRing.findEntryByKeyID(keyID=keyID).userID
+            except:
+                raise ValueError("PUBLIC KEY NOT FOUND!")
 
             if signatureTypeAsym == AlgoTypeAsym.DSA:
                 if keySizeSignature == KeySizeAsym.KEY1024:
@@ -243,9 +260,9 @@ class PGP:
                 verifier = DSS.new(key, 'fips-186-3')
                 try:
                     verifier.verify(h, digest)
-                    print("The message is authentic")
-                except ValueError:
-                    print("The message is not authentic")
+                    #print("The message is authentic")
+                except:
+                    raise ValueError("THE MESSAGE IS NOT AUTHENTIC!")
 
             elif signatureTypeAsym == AlgoTypeAsym.RSA:
                 if keySizeSignature == KeySizeAsym.KEY1024:
@@ -260,9 +277,9 @@ class PGP:
                 try:
                     verifier.verify(h, digest)
                     print("The message is authentic")
-                except (ValueError, TypeError):
-                    print("The message is not authentic")
+                except:
+                    raise ValueError("THE MESSAGE IS NOT AUTHENTIC!")
 
 
 
-        print(messageToReceive)
+        return messageToReceive,email

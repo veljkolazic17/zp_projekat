@@ -98,8 +98,8 @@ class Ui_publicKeyRing(object):
             for j in range(5):
                 self.tableWidget.setItem(i,j, QTableWidgetItem(str(secondList[j])))
 
-            if globals.algoAsymEncryption and secondList[3].value != globals.algoAsymEncryption.value:
-                self.tableWidget.hideRow(i)
+            # if globals.algoAsymEncryption and secondList[3].value != globals.algoAsymEncryption.value:
+            #     self.tableWidget.hideRow(i)
 
         self.tableWidget.resizeColumnsToContents()
 
@@ -121,7 +121,7 @@ class Ui_publicKeyRing(object):
         
         dlg.filePath = QLineEdit(dlg)
         dlg.email = QLineEdit(dlg)
-        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, dlg);
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, dlg)
 
         layout = QFormLayout(dlg)
         layout.addRow("File Path", dlg.filePath)
