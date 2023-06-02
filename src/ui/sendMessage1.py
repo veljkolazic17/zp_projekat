@@ -10,6 +10,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 import globals
+from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QVBoxLayout, QLabel
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -104,6 +105,12 @@ class Ui_Form(object):
         self.label_3.setText(_translate("Form", "Options"))
         self.label_4.setText(_translate("Form", "File Path"))
         self.label_2.setText(_translate("Form", "Message Text"))
+        self.textEdit.setText(globals.message)
+        self.textEdit_2.setText(globals.filePath)
+        self.checkBox_2.setChecked(globals.pgpOptions.encryption)
+        self.checkBox.setChecked(globals.pgpOptions.radix64)
+        self.checkBox_3.setChecked(globals.pgpOptions.zip)
+        self.checkBox_4.setChecked(globals.pgpOptions.signature)
 
     def button_handler_sendMessageBack(self):
         self.window = QtWidgets.QMainWindow()
@@ -120,15 +127,36 @@ class Ui_Form(object):
         globals.pgpOptions.radix64 = self.checkBox.isChecked()
         globals.message = self.textEdit.toPlainText()
         globals.filePath = self.textEdit_2.toPlainText()
-        if globals.pgpOptions.encryption or globals.pgpOptions.signature:
-            self.window = QtWidgets.QMainWindow()
-            self.ui = algoChoiceUI()
-            self.ui.setupUi(self.window)
-            globals.currentWindow.hide()
-            globals.currentWindow = self.window
-            self.window.show()
+        if globals.filePath != "":
+            if globals.pgpOptions.encryption or globals.pgpOptions.signature:
+                self.window = QtWidgets.QMainWindow()
+                self.ui = algoChoiceUI()
+                self.ui.setupUi(self.window)
+                globals.currentWindow.hide()
+                globals.currentWindow = self.window
+                self.window.show()
+            else:
+                self.window = QtWidgets.QMainWindow()
+                self.ui = summaryUI()
+                self.ui.setupUi(self.window)
+                globals.currentWindow.hide()
+                globals.currentWindow = self.window
+                self.window.show()
         else:
-            pass
+            dlg = QDialog(globals.currentWindow)
+            dlg.setWindowTitle("FILE PATH ERROR!")
+            QBtn = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+            dlg.buttonBox = QDialogButtonBox(QBtn)
+            dlg.buttonBox.accepted.connect(dlg.accept)
+            dlg.buttonBox.rejected.connect(dlg.reject)
+            dlg.layout = QVBoxLayout()
+            message = QLabel("PLEASE ENTER FILE PATH!")
+            dlg.layout.addWidget(message)
+            dlg.layout.addWidget(dlg.buttonBox)
+            dlg.setLayout(dlg.layout)
+            dlg.exec()
+
 
 from home import Ui_Form as homeUI
 from algorithmChoice import Ui_AlgorithmForm as algoChoiceUI
+from summaryPage import Ui_summaryPage as summaryUI

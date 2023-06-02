@@ -23,8 +23,8 @@ def main():
     pgp.publicKeyRing.importPublicKey(filepath='kljuc.pem',userID='veljkolazic2000@gmail.com')
     #privateKeyEnyty = pgp.privateKeyRing.generateKeyPair(algoTypeAsym = AlgoTypeAsym.DSA, keySizeAsym = KeySizeAsym.KEY1024, userData = userData)
     #pgp.publicKeyRing.importSingleKey(userID=privateKeyEnyty.userID, publicKey=privateKeyEnyty.publicKey, algoTypeAsym=AlgoTypeAsym.DSA, keySizeAsym=privateKeyEnyty.keySizeAsym)
-    pgp.sendMessage(message=b'kurvicamalaslatka', filePath='kurac.txt', pgpoptions=PGPOptions(signature=True,zip=True,radix64=True),password='malikurac123', privateKeyEntry=pgp.privateKeyRing.keyMap['veljkolazic2000@gmail.com'][0], publicKeyEntry=pgp.publicKeyRing.keyMap['veljkolazic2000@gmail.com'][0], algotTypeSym=AlgoTypeSym.AES128)
-    pgp.receiveMessage(filePath='kurac.txt', password='malikurac123')
+    #pgp.sendMessage(message=b'kurvicamalaslatka', filePath='kurac.txt', pgpoptions=PGPOptions(signature=True,zip=True,radix64=True),password='malikurac123', privateKeyEntry=pgp.privateKeyRing.keyMap['veljkolazic2000@gmail.com'][0], publicKeyEntry=pgp.publicKeyRing.keyMap['veljkolazic2000@gmail.com'][0], algotTypeSym=AlgoTypeSym.AES128)
+    pgp.receiveMessage(filePath='asd', password='malikurac123')
     #pgp.privateKeyRing.exportPublicKey(filePath='kljuc.pem',keyID=privateKeyEnyty.keyID)
     #pgp.privateKeyRing.exportPrivateKey(filePath='privateKey.pem', keyID=privateKeyEnyty.keyID, password='malikurac123')
    

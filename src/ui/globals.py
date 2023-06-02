@@ -9,3 +9,19 @@ def init():
     message = ""
     global filePath
     filePath = ""
+
+    global algoAsymEncryption
+    algoAsymEncryption = None
+    global algoAsymSignature
+    algoAsymSignature = None
+    global algoSym
+    algoSym = None
+    
+    global publicKeyEntry
+    publicKeyEntry = None
+    global privateKeyEntry
+    privateKeyEntry = None
+    global previousRowPublic
+    previousRowPublic = None
+    global previousRowPrivate
+    previousRowPrivate = None

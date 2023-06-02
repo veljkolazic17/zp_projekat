@@ -9,10 +9,18 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtGui import QColor
 import globals
-from PyQt5.QtWidgets import QTableWidgetItem
-from PyQt5.QtWidgets import QAbstractItemView
+from PyQt5.QtWidgets import QAbstractItemView, QDialog, QTableWidgetItem, QDialogButtonBox, QVBoxLayout, QLabel
 class Ui_Form(object):
+
+
+
+    def __init__(self) -> None:
+        self.list_private = globals.pgp.privateKeyRing.listify()
+        self.list_public = globals.pgp.publicKeyRing.listify()
+        
+
     def setupUi(self, Form):
         Form.setObjectName("Form")
         Form.setEnabled(True)
@@ -92,7 +100,12 @@ class Ui_Form(object):
         self.pushButton.setText(_translate("Form", "Back"))
         self.pushButton.clicked.connect(self.button_handler_sendMessageBack)
         self.pushButton_2.setText(_translate("Form", "Next"))
-        list = globals.pgp.privateKeyRing.listify()
+        self.pushButton_2.clicked.connect(self.button_handler_next)
+
+        self.privateKeys.cellClicked.connect(self.get_clicked_row_private)
+        self.publicKeys.cellClicked.connect(self.get_clicked_row_public)
+
+        
         self.privateKeys.setHorizontalHeaderLabels([
             "Timestamp",
             "KeyID",
@@ -101,11 +114,11 @@ class Ui_Form(object):
             "Key Size"
         ])
         for i in range(globals.pgp.privateKeyRing.size):
-            secondList = [list[i].timestamp, list[i].keyID.hex(), list[i].userID, list[i].algoTypeAsym, list[i].keySizeAsym.value]
+            secondList = [self.list_private[i].timestamp, self.list_private[i].keyID.hex(), self.list_private[i].userID, self.list_private[i].algoTypeAsym, self.list_private[i].keySizeAsym.value]
             for j in range(5):
                 self.privateKeys.setItem(i,j, QTableWidgetItem(str(secondList[j])))
         self.privateKeys.resizeColumnsToContents()
-        list = globals.pgp.publicKeyRing.listify()
+        
         self.publicKeys.setHorizontalHeaderLabels([
             "Timestamp",
             "KeyID",
@@ -114,11 +127,71 @@ class Ui_Form(object):
             "Key Size"
         ])
         for i in range(globals.pgp.publicKeyRing.size):
-            secondList = [list[i].timestamp, list[i].keyID.hex(), list[i].userID, list[i].algoTypeAsym, list[i].keySizeAsym.value]
+            secondList = [self.list_public[i].timestamp, self.list_public[i].keyID.hex(), self.list_public[i].userID, self.list_public[i].algoTypeAsym, self.list_public[i].keySizeAsym.value]
             for j in range(5):
                 self.publicKeys.setItem(i,j, QTableWidgetItem(str(secondList[j])))
         self.publicKeys.resizeColumnsToContents()
-               
+        if globals.previousRowPrivate != None:
+            for j in range(self.privateKeys.columnCount()):
+                self.privateKeys.item(globals.previousRowPrivate, j).setBackground(QColor(0, 200, 0))
+        if globals.previousRowPublic != None:
+            for j in range(self.publicKeys.columnCount()):
+                self.publicKeys.item(globals.previousRowPublic, j).setBackground(QColor(0, 200, 0))
+                
+    def button_handler_next(self):
+        if (globals.privateKeyEntry == None and globals.pgpOptions.signature == True) or (globals.publicKeyEntry == None and globals.pgpOptions.encryption == True):
+            
+            dlg = QDialog(globals.currentWindow)
+
+            dlg.setWindowTitle("KEY ERROR!")
+
+            QBtn = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+
+            dlg.buttonBox = QDialogButtonBox(QBtn)
+            dlg.buttonBox.accepted.connect(dlg.accept)
+            dlg.buttonBox.rejected.connect(dlg.reject)
+
+            dlg.layout = QVBoxLayout()
+            message = QLabel("PLEASE SELECT KEYS!")
+            dlg.layout.addWidget(message)
+            dlg.layout.addWidget(dlg.buttonBox)
+            dlg.setLayout(dlg.layout)
+            dlg.exec()
+        else:
+            self.window = QtWidgets.QMainWindow()
+            self.ui = summaryUI()
+            self.ui.setupUi(self.window)
+            globals.currentWindow.hide()
+            globals.currentWindow = self.window
+            self.window.show()
+
+    def button_handler_back(self):
+        self.window = QtWidgets.QMainWindow()
+        self.ui = algoUI()
+        self.ui.setupUi(self.window)
+        globals.currentWindow.hide()
+        globals.currentWindow = self.window
+        self.window.show()
+
+    
+    def get_clicked_row_private(self, row, column):
+        if globals.previousRowPrivate != None:
+            for j in range(self.privateKeys.columnCount()):
+                self.privateKeys.item(globals.previousRowPrivate, j).setBackground(QColor(255, 255, 255))
+        globals.privateKeyEntry = self.list_private[row]
+        for j in range(self.privateKeys.columnCount()):
+            self.privateKeys.item(row, j).setBackground(QColor(0, 200, 0))
+        globals.previousRowPrivate = row
+
+
+    def get_clicked_row_public(self, row, column):
+        if globals.previousRowPublic != None:
+            for j in range(self.publicKeys.columnCount()):
+                self.publicKeys.item(globals.previousRowPublic, j).setBackground(QColor(255, 255, 255))
+        globals.publicKeyEntry = self.list_public[row]
+        for j in range(self.publicKeys.columnCount()):
+            self.publicKeys.item(row, j).setBackground(QColor(0, 200, 0))
+        globals.previousRowPublic = row
 
 from algorithmChoice import Ui_AlgorithmForm as algoUI
-
+from summaryPage import Ui_summaryPage as summaryUI

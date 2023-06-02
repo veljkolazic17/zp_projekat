@@ -10,6 +10,10 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 import globals
+import sys
+sys.path.insert(1, 'src/pgp')
+import User
+sys.path.append('..')
 
 class Ui_AlgorithmForm(object):
     def setupUi(self, AlgorithmForm):
@@ -149,12 +153,20 @@ class Ui_AlgorithmForm(object):
         self.window.show()
 
     def button_handler_sendMessageNext(self):
+
+        if globals.pgpOptions.signature:
+            globals.algoAsymSignature = User.AlgoTypeAsym.DSA if self.dsa_elgamal.isChecked() else User.AlgoTypeAsym.RSA
+        if globals.pgpOptions.encryption:
+            globals.algoAsymEncryption = User.AlgoTypeAsym.ELGAMAL if self.dsa_elgamal.isChecked() else User.AlgoTypeAsym.RSA
+            globals.algoSym = User.AlgoTypeSym.AES128 if self.aes128.isChecked() else User.AlgoTypeSym.CAST5
+
         self.window = QtWidgets.QMainWindow()
         self.ui = keySelectionUI()
         self.ui.setupUi(self.window)
         globals.currentWindow.hide()
         globals.currentWindow = self.window
         self.window.show()
+
 
 from sendMessage1 import Ui_Form as sendMessageUI
 from keySelection import Ui_Form as keySelectionUI
