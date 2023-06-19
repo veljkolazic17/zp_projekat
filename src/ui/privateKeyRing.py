@@ -29,12 +29,16 @@ class Ui_privateKeyRing(object):
         privateKeyRing.resize(800, 600)
         self.importKeysBtn = QtWidgets.QPushButton(privateKeyRing)
         self.importKeysBtn.setGeometry(QtCore.QRect(670, 430, 120, 40))
+        self.deleteKeyBtn = QtWidgets.QPushButton(privateKeyRing)
+        self.deleteKeyBtn.setGeometry(QtCore.QRect(15, 430, 70, 40))
         font = QtGui.QFont()
         font.setPointSize(12)
         font.setBold(True)
         font.setWeight(75)
         self.importKeysBtn.setFont(font)
         self.importKeysBtn.setObjectName("importKeysBtn")
+        self.deleteKeyBtn.setFont(font)
+        self.deleteKeyBtn.setObjectName("deleteKeyBtn")
         self.importKeysBtn.clicked.connect(self.button_handler_import_keys)
         self.exportPublicKeyBtn = QtWidgets.QPushButton(privateKeyRing)
         self.exportPublicKeyBtn.setGeometry(QtCore.QRect(479, 430, 171, 40))
@@ -74,6 +78,7 @@ class Ui_privateKeyRing(object):
         font.setPointSize(12)
         font.setBold(True)
         font.setWeight(75)
+        self.deleteKeyBtn.clicked.connect(self.button_handler_delete)
         self.exportPrivateKeyBtn.setFont(font)
         self.exportPrivateKeyBtn.setObjectName("exportPrivateKeyBtn")
         self.exportPrivateKeyBtn.clicked.connect(self.button_handler_export_private_key)
@@ -172,6 +177,24 @@ class Ui_privateKeyRing(object):
             dlg.exec()
        
 
+    def button_handler_delete(self):
+        if globals.privateKeyEntry:
+            globals.pgp.privateKeyRing.deleteEntryByKeyID(globals.privateKeyEntry.keyID)
+            self.tableWidget.setRowCount(self.tableWidget.rowCount() - 1)
+            self.list_private = globals.pgp.privateKeyRing.listify()
+            globals.previousRowPrivate = None
+            globals.privateKeyEntry = None
+            for i in range(globals.pgp.privateKeyRing.size):
+                secondList = [self.list_private[i].timestamp, self.list_private[i].keyID.hex(), self.list_private[i].userID, self.list_private[i].algoTypeAsym, self.list_private[i].keySizeAsym.value]
+                for j in range(5):
+                    self.tableWidget.setItem(i,j, QTableWidgetItem(str(secondList[j])))
+
+
+            
+
+        
+
+
     def export_key(self, dlg):
         if dlg.filePath.text() == "":
             msg = QMessageBox(globals.currentWindow)
@@ -222,6 +245,8 @@ class Ui_privateKeyRing(object):
         buttonBox.rejected.connect(dlg.reject)
 
         dlg.exec()
+
+
 
     def import_key(self,dlg):
         if dlg.filePathPublic.text() == "" or dlg.filePathPrivate.text() == "":
@@ -354,6 +379,7 @@ class Ui_privateKeyRing(object):
     def retranslateUi(self, privateKeyRing):
         _translate = QtCore.QCoreApplication.translate
         privateKeyRing.setWindowTitle(_translate("privateKeyRing", "Form"))
+        self.deleteKeyBtn.setText(_translate("privateKeyRing", "Delete"))
         self.importKeysBtn.setText(_translate("privateKeyRing", "Import Keys"))
         self.exportPublicKeyBtn.setText(_translate("privateKeyRing", "Export Public Key"))
         self.back.setText(_translate("privateKeyRing", "Back"))
@@ -370,5 +396,6 @@ class Ui_privateKeyRing(object):
         globals.currentWindow = self.window
         self.window.show()
 
+ 
 
 from home import Ui_Form as homeUI

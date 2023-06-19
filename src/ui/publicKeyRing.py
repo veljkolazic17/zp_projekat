@@ -38,6 +38,7 @@ class Ui_publicKeyRing(object):
         self.label.setObjectName("label")
         self.back = QtWidgets.QPushButton(publicKeyRing)
         self.back.setGeometry(QtCore.QRect(30, 540, 120, 40))
+ 
         font = QtGui.QFont()
         font.setPointSize(12)
         font.setBold(True)
@@ -54,6 +55,10 @@ class Ui_publicKeyRing(object):
         self.importKey.setObjectName("importKey")
         self.importKey_2 = QtWidgets.QPushButton(publicKeyRing)
         self.importKey_2.setGeometry(QtCore.QRect(530, 430, 120, 40))
+        self.deleteButton = QtWidgets.QPushButton(publicKeyRing)
+        self.deleteButton.setGeometry(QtCore.QRect(390, 430, 120, 40))
+        self.deleteButton.setFont(font)
+        self.deleteButton.clicked.connect(self.button_handler_delete)
         font = QtGui.QFont()
         font.setPointSize(12)
         font.setBold(True)
@@ -66,6 +71,7 @@ class Ui_publicKeyRing(object):
 
     def retranslateUi(self, publicKeyRing):
         _translate = QtCore.QCoreApplication.translate
+        self.deleteButton.setText(_translate("publicKeyRing", "Delete"))
         publicKeyRing.setWindowTitle(_translate("publicKeyRing", "Form"))
         self.label.setText(_translate("publicKeyRing", "Public Key Ring"))
         self.back.setText(_translate("publicKeyRing", "Back"))
@@ -172,6 +178,18 @@ class Ui_publicKeyRing(object):
             return
         
         
+    def button_handler_delete(self):
+        if globals.publicKeyEntry:
+            globals.pgp.publicKeyRing.deleteEntryByKeyID(globals.publicKeyEntry.keyID)
+            self.tableWidget.setRowCount(self.tableWidget.rowCount() - 1)
+            self.list_public = globals.pgp.publicKeyRing.listify()
+            globals.previousRowPublic = None
+            globals.publicKeyEntry = None
+            for i in range(globals.pgp.publicKeyRing.size):
+                secondList = [self.list_public[i].timestamp, self.list_public[i].keyID.hex(), self.list_public[i].userID, self.list_public[i].algoTypeAsym, self.list_public[i].keySizeAsym.value]
+                for j in range(5):
+                    self.tableWidget.setItem(i,j, QTableWidgetItem(str(secondList[j])))
+
 
     def button_handler_export_key(self):
         dlg = QMessageBox(globals.currentWindow)
