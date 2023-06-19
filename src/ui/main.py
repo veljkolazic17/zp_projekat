@@ -1,8 +1,8 @@
 import sys
 sys.path.insert(1, 'src/pgp')
+sys.path.append('..')
 import PGP
 import User
-sys.path.append('..')
 from PyQt5 import QtCore, QtGui, QtWidgets
 from sendMessage1 import Ui_Form as sendMessage1UI
 from home import Ui_Form as homeUI
@@ -12,7 +12,7 @@ import globals
 if __name__ == "__main__":
     userData = User.UserData()
     userData.mail = "veljkolazic2000@gmail.com"
-    userData.password = "malikurac123"
+    userData.password = "123"
     userData.name = "Veljko Djadjic"
    
     import sys
@@ -30,9 +30,7 @@ if __name__ == "__main__":
     globals.currentWindow = Form
     globals.pgpOptions = PGP.PGPOptions()
     globals.pgp = PGP.PGP()
-    # globals.pgp.privateKeyRing.importPrivateKey(filepathPrivateKey='privateKey.pem',filepathPublicKey='kljuc.pem',userID='veljkolazic2000@gmail.com',password='malikurac123')
-    # globals.pgp.publicKeyRing.importPublicKey(filepath='kljuc.pem',userID='veljkolazic2000@gmail.com')
-    # globals.pgp.privateKeyRing.generateKeyPair(algoTypeAsym = User.AlgoTypeAsym.RSA, keySizeAsym = User.KeySizeAsym.KEY1024, userData = userData)
+
     ui = homeUI()
     ui.setupUi(Form)
     globals.currentWindow.show()

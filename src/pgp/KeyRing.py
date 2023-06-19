@@ -10,7 +10,7 @@ from Crypto.Hash import SHA1
 from cryptography.hazmat.primitives.asymmetric import dsa, rsa
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
-
+import ElGamal
 
 class KeyRing:
     def __init__(self) -> None:
@@ -49,15 +49,19 @@ class KeyRing:
         f = open(file=filePath, mode='wb+')
         keyEntry = self.findEntryByKeyID(keyID=keyID)
         if keyEntry.algoTypeAsym == AlgoTypeAsym.DSA:
+            
             dsaKey = DSA.import_key(extern_key=keyEntry.publicKey)
             f.write(dsaKey.export_key(format='PEM'))
+           
         elif keyEntry.algoTypeAsym == AlgoTypeAsym.ELGAMAL:
-            pass
+            ElGamal.generate_elgamal_pem_file(key_bytes=keyEntry.publicKey, f=f, is_public=True)
         elif keyEntry.algoTypeAsym == AlgoTypeAsym.RSA:
+
             rsaKey = RSA.import_key(extern_key=keyEntry.publicKey)
             f.write(rsaKey.export_key(format='PEM'))
 
         f.close()
+        
     def listify(self):
         list = []
         for key,value in self.keyMap.items():
@@ -127,7 +131,10 @@ class PrivateKeyRing(KeyRing):
             private_key = key.exportKey(format='DER')
             public_key = key.publickey().exportKey(format='DER')
         elif algoTypeAsym == AlgoTypeAsym.ELGAMAL:
-            pass
+            # Generate Key Pair
+            key : ElGamal.ElGamalKey = ElGamal.generate(keySizeAsym.value, randfunc=None)
+            private_key = key.p.to_bytes(byteorder='big') + key.g.to_bytes(byteorder='big') + key.y.to_bytes(byteorder='big') + key.x.to_bytes(byteorder='big')
+            public_key = key.p.to_bytes(byteorder='big') + key.g.to_bytes(byteorder='big') + key.y.to_bytes(byteorder='big')
             
         return self.__generateKeyPairWithPrivateKey(private_key=private_key, public_key=public_key, algoTypeAsym=algoTypeAsym, keySizeAsym=keySizeAsym, userData=userData)
 
@@ -150,7 +157,7 @@ class PrivateKeyRing(KeyRing):
                 dsaKey = DSA.import_key(extern_key=privateKey)
                 f.write(dsaKey.export_key(format='PEM'))
             elif keyEntry.algoTypeAsym == AlgoTypeAsym.ELGAMAL:
-                pass
+                ElGamal.generate_elgamal_pem_file(key_bytes=privateKey, f=f, is_public=False)
             elif keyEntry.algoTypeAsym == AlgoTypeAsym.RSA:
                 rsaKey = RSA.import_key(extern_key=privateKey)
                 f.write(rsaKey.export_key(format='PEM'))
@@ -164,13 +171,22 @@ class PrivateKeyRing(KeyRing):
     def importPrivateKey(self, filepathPublicKey: str, filepathPrivateKey: str, userID : str, password : str) -> PrivateKeyRingEntry:
         fpublic = open(file=filepathPublicKey,mode='rb')
         fprivate = open(file=filepathPrivateKey,mode='rb')
-        publicData = fpublic.read()
-        privateData = fprivate.read()
+        linePublic = fpublic.readline()
+        linePrivate = fprivate.readline()
         retValue = None
         exceptionMsg = 'Keys are not of expected format!'
         try:
-            keyPrivate = load_pem_private_key(privateData,password=None)
-            keyPublic = load_pem_public_key(publicData)
+            keyPrivate = 0
+            keyPublic = 0
+            publicData = 0
+            privateData = 0
+            if(linePublic != b'-----BEGIN ELGAMAL PUBLIC KEY-----\n' and linePrivate != b'-----BEGIN ELGAMAL PRIVATE KEY-----\n'):
+                fpublic.seek(0)
+                fprivate.seek(0)
+                publicData = fpublic.read()
+                privateData = fprivate.read()   
+                keyPrivate = load_pem_private_key(privateData,password=None)
+                keyPublic = load_pem_public_key(publicData)
             encrtyptedPrivateKey = None
             publicKey = None
             keySizeAsym = None
@@ -201,7 +217,19 @@ class PrivateKeyRing(KeyRing):
                 hashed_password = hashed_password[0:16]
                 encrtyptedPrivateKey = CAST.new(hashed_password, CAST.MODE_OPENPGP).encrypt(encrtyptedPrivateKey)
             else:
-                print('ELGAMAL')
+                fpublic.seek(0)
+                fprivate.seek(0)
+                publicKey, key_size = ElGamal.read_elgamal_pem_file(f=fpublic)
+                keySizeAsym = KeySizeAsym(key_size)
+                algoTypeAsym = AlgoTypeAsym.ELGAMAL
+                encrtyptedPrivateKey, key_size_private = ElGamal.read_elgamal_pem_file(f=fprivate)
+                h = SHA1.new()
+                h.update(bytes(password, 'utf-8'))
+                hashed_password = h.digest()
+                hashed_password = hashed_password[0:16]
+                encrtyptedPrivateKey = encrtyptedPrivateKey.p.to_bytes(byteorder='big') + encrtyptedPrivateKey.g.to_bytes(byteorder='big') + encrtyptedPrivateKey.y.to_bytes(byteorder='big') + encrtyptedPrivateKey.x.to_bytes(byteorder='big')
+                publicKey = publicKey.p.to_bytes(byteorder='big') + publicKey.g.to_bytes(byteorder='big') + publicKey.y.to_bytes(byteorder='big')
+                encrtyptedPrivateKey = CAST.new(hashed_password, CAST.MODE_OPENPGP).encrypt(encrtyptedPrivateKey)
 
             if userID not in self.keyMap:
                 self.keyMap[userID] = []
@@ -259,10 +287,15 @@ class PublicKeyRing(KeyRing):
     
     def importPublicKey(self, filepath: str, userID : str):
         f = open(file=filepath,mode='rb')
-        data = f.read()
+        line = f.readline()
         exceptionMsg = 'KEY IS NOT PUBLIC!'
         try:
-            key = load_pem_public_key(data)
+            key = 0
+            data = 0
+            if(line != b'-----BEGIN ELGAMAL PUBLIC KEY-----\n'):
+                f.seek(0)
+                data = f.read()
+                key = load_pem_public_key(data)
             publicKey = None
             keySizeAsym = None
             algoTypeAsym = None
@@ -270,15 +303,19 @@ class PublicKeyRing(KeyRing):
                 publicKey = RSA.import_key(extern_key=data)
                 keySizeAsym = KeySizeAsym(key.key_size)
                 publicKey = publicKey.export_key(format='DER')
-                algoTypeAsym = AlgoTypeAsym.RSA
-                
+                algoTypeAsym = AlgoTypeAsym.RSA   
             elif isinstance(key, dsa.DSAPublicKey):
+                key = load_pem_public_key(data)
                 publicKey = DSA.import_key(extern_key=data)
                 keySizeAsym = KeySizeAsym(key.key_size)
                 publicKey = publicKey.export_key(format='DER')
                 algoTypeAsym = AlgoTypeAsym.DSA
             else:
-                print('ELGAMAL')
+                f.seek(0)
+                publicKey, size = ElGamal.read_elgamal_pem_file(f=f)
+                publicKey = publicKey.p.to_bytes(byteorder='big') + publicKey.g.to_bytes(byteorder='big') + publicKey.y.to_bytes(byteorder='big')
+                keySizeAsym = KeySizeAsym(size)
+                algoTypeAsym = AlgoTypeAsym.ELGAMAL
 
             retValue = None
 

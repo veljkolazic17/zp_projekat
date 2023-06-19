@@ -1,6 +1,7 @@
 from KeyRing import *
 from Crypto.Hash import SHA1
 from Crypto.Signature import DSS
+from Crypto.PublicKey import DSA
 from Crypto.Signature import pss
 from Crypto.Cipher import CAST
 from Crypto.Cipher import AES
@@ -150,12 +151,19 @@ class PGP:
                 messageToSend = AES.new(sessionKey, AES.MODE_OPENPGP, iv=b'0123456789abcdef').encrypt(messageToSend)
 
             if publicKeyEntry.algoTypeAsym == AlgoTypeAsym.ELGAMAL:
-                pass
+                try:
+                    p = int.from_bytes(publicKey[0 : len(publicKey) // 3], byteorder='big')
+                    g = int.from_bytes(publicKey[len(publicKey) //3 : 2*len(publicKey) // 3], byteorder='big')
+                    y = int.from_bytes(publicKey[2*len(publicKey) //3 : len(publicKey)], byteorder='big')
+                    elgamalPublicKey = ElGamal.construct((p,g,y))
+                    sessionKey = bytes(str(elgamalPublicKey.encrypt(plaintext=sessionKey, K = 127)),'utf-8')
+                except Exception as e:
+                    print(e)
             elif publicKeyEntry.algoTypeAsym == AlgoTypeAsym.RSA:
                 rsaPublicKey = RSA.importKey(extern_key=publicKey)
                 sessionKey = PKCS1_OAEP.new(rsaPublicKey).encrypt(sessionKey)
 
-            messageToSend = publicKeyEntry.keyID + sessionKey + messageToSend
+            messageToSend = publicKeyEntry.keyID + b'\n' + sessionKey + b'\n' + messageToSend
 
 
         if pgpoptions.radix64:
@@ -193,9 +201,10 @@ class PGP:
             messageToReceive = base64.b64decode(messageToReceive)
 
         if pgpoptions.encryption:
-            keyID = messageToReceive[0:8]
-            sessionKey = messageToReceive[8:keySizeEncryption.value//8+8]
-            messageToReceive = messageToReceive[keySizeEncryption.value//8+8:]
+            messageToReceive = messageToReceive.split(b'\n')
+            keyID = messageToReceive[0]
+            sessionKey = messageToReceive[1]
+            messageToReceive = messageToReceive[2]
 
             privateKeyEntry : PrivateKeyRing.PrivateKeyRingEntry = self.privateKeyRing.findEntryByKeyID(keyID=keyID)
 
@@ -216,11 +225,23 @@ class PGP:
             privateKey = cipher.decrypt(ciphertext)
             try:
                 if encryptionTypeAsym == AlgoTypeAsym.ELGAMAL:
-                    pass
+                    try:
+                        print(sessionKey)
+                        sessionKey = sessionKey.decode('utf-8')
+                        ints = sessionKey[1:-1].split(',')
+                        sessionKey = [int(ints[0]), int(ints[1])]
+                        print(sessionKey)
+                        p = int.from_bytes(privateKey[0 : len(privateKey) // 4], byteorder='big')
+                        g = int.from_bytes(privateKey[len(privateKey) // 4 : len(privateKey) // 2], byteorder='big')
+                        y = int.from_bytes(privateKey[len(privateKey) // 2 : 3 * len(privateKey) // 4], byteorder='big')
+                        x = int.from_bytes(privateKey[3 * len(privateKey) // 4 : len(privateKey)], byteorder='big')
+                        elgamalPrivateKey =  ElGamal.construct((p,g,y,x))
+                        sessionKey = elgamalPrivateKey.decrypt(sessionKey)
+                    except Exception as e:
+                        print(e)
                 elif encryptionTypeAsym == AlgoTypeAsym.RSA:
                     rsaPrivateKey = RSA.import_key(extern_key=privateKey)
                     sessionKey = PKCS1_OAEP.new(rsaPrivateKey).decrypt(sessionKey)
-
                 if encryptionTypeSym == AlgoTypeSym.CAST5:
                     eiv = messageToReceive[:CAST.block_size+2]
                     ciphertext = messageToReceive[CAST.block_size+2:]
